@@ -1,0 +1,28 @@
+//este codigo base de arduino para el sensor dth11 y sensor de humedad ademas del enlace de python 
+#include <DHT.h>
+
+#define DHTPIN 2
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(9600);
+  dht.begin();
+}
+
+void loop() {
+  delay(1000);
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+  
+  if (isnan(h) || isnan(t)) {
+    Serial.println("Error leyendo datos del sensor");
+    return;
+  }
+
+  // Enviar datos en formato "humedad,temperatura"
+  Serial.print(h);
+  Serial.print(",");
+  Serial.println(t);
+}
