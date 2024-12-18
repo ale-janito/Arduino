@@ -1,0 +1,66 @@
+#include <DHT.h> // Librería para el sensor DHT11 
+
+#define DHTTYPE DHT11 // Definir el tipo de sensor (DHT11)
+
+#define sensor_humedad_pin A0 // Sensor de humedad de suelo en el pin A0
+#define fotorresistor_pin A5  // Fotorresistor en el pin A5
+
+int pinDHT11 = 2; // Sensor de humedad y temperatura en el pin 2
+DHT dht(pinDHT11, DHTTYPE);
+
+int agua_pin = 3;       // Bomba de agua conectada al pin 3
+int agua_speed = 255;   // Velocidad de trabajo de la bomba de agua
+
+void setup() {
+  Serial.begin(9600); // Inicializar comunicación serie
+  dht.begin();        // Inicializar sensor DHT11
+  pinMode(agua_pin, OUTPUT); // Configurar el pin de la bomba como salida
+}
+
+void loop() {
+  float h = dht.readHumidity();    // Leer la humedad relativa
+  float t = dht.readTemperature(); // Leer la temperatura en °C
+  
+  if (isnan(h) || isnan(t)) { // Verificar si la lectura fue exitosa
+    Serial.println("Error al leer el sensor DHT");
+    return;
+  }
+
+  int valor_humedad_tierra = map(analogRead(sensor_humedad_pin), 0, 1023, 100, 0);
+  int fotorresistor_value = map(analogRead(fotorresistor_pin), 1023, 0, 100, 0);
+
+  // Monitoreo de valores
+  Serial.println(" ");
+  Serial.print("Humedad: ");
+  Serial.print(h); 
+  Serial.println("%");
+  
+  Serial.print("Temperatura: ");
+  Serial.print(t);
+  Serial.println(" *C");
+  
+  Serial.print("Humedad del suelo: ");
+  Serial.print(valor_humedad_tierra);
+  Serial.println("%");
+  
+  Serial.print("Luz: ");
+  Serial.print(fotorresistor_value);
+  Serial.println("%");
+
+  /* Control de riego:
+   * Activar si:
+   * - Humedad del suelo <= 50%
+   * - Luz < 30%
+   * - Temperatura < 30°C
+   */
+  if (valor_humedad_tierra <= 50 && fotorresistor_value < 30 && t < 30) {
+    analogWrite(agua_pin, agua_speed); // Activar bomba
+  } else {
+    analogWrite(agua_pin, 0); // Desactivar bomba
+  }
+
+  delay(2000); // Esperar 2 segundos antes de repetir
+}
+
+
+
