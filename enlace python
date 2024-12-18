@@ -1,0 +1,81 @@
+import serial  # Importamos la librería para comunicación serial
+import time  # Importamos la librería para manejar tiempos de espera
+import matplotlib.pyplot as plt  # Importamos Matplotlib para graficar
+from matplotlib.animation import FuncAnimation  # Importamos FuncAnimation para animaciones en gráficos
+import seaborn as sns  # Importamos Seaborn para estilos de gráficos
+
+# Configurar el estilo del gráfico usando Seaborn
+sns.set()
+
+# Configurar el puerto serial (ajusta 'COM4' según tu configuración)
+try:
+    arduino = serial.Serial('COM4', 9600)  # Abre el puerto COM4 a 9600 baudios
+    time.sleep(2)  # Espera 2 segundos para establecer la conexión con el Arduino
+    print("Conexión establecida con Arduino en COM4")
+except serial.SerialException:  # Si hay un error al abrir el puerto serial
+    print("No se pudo abrir el puerto serial.")
+    exit()  # Sale del programa si no se puede conectar
+
+# Variables para almacenar datos de tiempo, humedad, temperatura
+tiempo = []  # Lista para almacenar el tiempo
+humedad = []  # Lista para almacenar valores de humedad
+temperatura = []  # Lista para almacenar valores de temperatura
+
+# Inicializar el gráfico con estilo y tamaño
+fig, ax = plt.subplots(2, 1, figsize=(10, 8))  # Crea 2 gráficos en una figura de tamaño 10x8 pulgadas
+
+# Función para actualizar el gráfico en tiempo real
+def update(frame):
+    if arduino.in_waiting > 0:  # Verificar si hay datos disponibles en el puerto serial
+        try:
+            # Leer datos del puerto serial y decodificar
+            linea = arduino.readline().decode('utf-8').strip()
+            print(f"Datos recibidos: {linea}")  # Imprimir los datos recibidos para verificación
+
+            # Separar los valores de humedad y temperatura
+            valores = linea.split(',')
+            if len(valores) == 2:  # Asegurarse de que hay dos valores (humedad y temperatura)
+                h = float(valores[0])  # Convertir el primer valor a flotante (humedad)
+                t = float(valores[1])  # Convertir el segundo valor a flotante (temperatura)
+
+                # Agregar datos a las listas
+                tiempo.append(len(tiempo))  # El tiempo es el índice de la muestra
+                humedad.append(h)
+                temperatura.append(t)
+
+                # Limitar los datos a los últimos 20 puntos para mantener la gráfica actualizada
+                if len(tiempo) > 20:
+                    tiempo.pop(0)
+                    humedad.pop(0)
+                    temperatura.pop(0)
+
+                # Limpiar los ejes antes de actualizar
+                ax[0].cla()
+                ax[1].cla()
+
+                # Graficar humedad
+                ax[0].plot(tiempo, humedad, label='Humedad (%)', color='blue', linestyle='-', marker='o')
+                ax[0].set_title('Humedad en tiempo real')
+                ax[0].set_ylabel('Humedad (%)')
+                ax[0].set_xlabel('Tiempo (s)')
+                ax[0].legend(loc='upper right')
+                ax[0].grid(True)  # Añadir rejilla al gráfico de humedad
+
+                # Graficar temperatura
+                ax[1].plot(tiempo, temperatura, label='Temperatura (°C)', color='red', linestyle='--', marker='x')
+                ax[1].set_title('Temperatura en tiempo real')
+                ax[1].set_ylabel('Temperatura (°C)')
+                ax[1].set_xlabel('Tiempo (s)')
+                ax[1].legend(loc='upper right')
+                ax[1].grid(True)  # Añadir rejilla al gráfico de temperatura
+
+                # Ajustar diseño de la figura
+                plt.tight_layout()
+        except Exception as e:
+            print(f"Error al procesar los datos: {e}")  # Mostrar mensaje de error si ocurre
+
+# Configurar animación con un intervalo de actualización de 500 ms
+ani = FuncAnimation(fig, update, interval=500, cache_frame_data=False)
+
+# Mostrar el gráfico en pantalla
+plt.show()
